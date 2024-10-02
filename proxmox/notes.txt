@@ -6,4 +6,4 @@ ssh-copy-id username@hostname
 
 may need to ssh regularly with the username@hostname and then enter the password first
 
-
+need notes on template creation
