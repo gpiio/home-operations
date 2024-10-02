@@ -1,3 +1,9 @@
 Start with a proxmox base template to create other vms off of
 
+easy way to do is with ssh-copy-id command example
+
+ssh-copy-id username@hostname 
+
+may need to ssh regularly with the username@hostname and then enter the password first
+
 
