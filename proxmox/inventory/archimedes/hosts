@@ -1,4 +1,6 @@
-[archimedes]
+[master]
 archimedes-01
+
+[workers]
 archimedes-02
 archimedes-03

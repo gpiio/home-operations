@@ -1,0 +1,6 @@
+[master]
+laser-01
+
+[worker]
+laser-02
+laser-03
