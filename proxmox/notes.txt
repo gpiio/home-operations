@@ -22,6 +22,19 @@ qm template 9004
 
 qm clone 9004 135 --name quantum --full
 
+#### Cloning multiple vms from template
+
+qm clone 9004 [vmid] --name node-01 --full
+qm clone 9004 136 --name node-02 --full
+qm clone 9004 137 --name node-03 --full
+
+#### Deleting a vm 
+
+qm shutdown [vmid]
+OR
+qm stop [vmid]
+
+qm destroy[vmid]
 
 easy way to do is with ssh-copy-id command example
 
