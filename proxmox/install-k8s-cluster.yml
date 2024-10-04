@@ -1,0 +1,192 @@
+---
+- hosts: masters
+  become: yes
+  tasks:
+  - name: Disable Swap
+    command: swapoff -a
+    ignore_errors: true
+
+  - name: Ensure Swap is Disabled on Boot
+    lineinfile:
+      path: /etc/fstab
+      regexp: '^.*swap.*$'
+      state: absent
+
+  - name: Allow Port 6443
+    ufw:
+      rule: allow
+      port: 6443
+      proto: tcp
+
+  - name: Enable UFW
+    ufw:
+      state: enabled    
+
+  - name: Install Docker
+    apt:
+      name: docker.io
+      state: present
+
+  - name: Install packages needed to use the Kubernetes apt repository
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+
+  - name: Ensure /etc/apt/keyrings directory exists
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+
+  - name: Download Kubernetes apt Release key
+    get_url:
+      url: https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key
+      dest: /tmp/kubernetes-release-key.gpg
+      mode: '0644'
+
+  - name: Convert Release key to GPG format and move to keyrings directory
+    command: >
+      gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/kubernetes-release-key.gpg
+    become: true
+
+  - name: Set proper permissions for Kubernetes apt keyring
+    file:
+      path: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      mode: '0644'
+      owner: root
+      group: root
+    become: true
+
+  - name: Add Kubernetes apt repository
+    copy:
+      dest: /etc/apt/sources.list.d/kubernetes.list
+      content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /'
+      mode: '0644'
+    become: true
+
+  - name: Remove temporary key file
+    file:
+      path: /tmp/kubernetes-release-key.gpg
+      state: absent
+
+  - name: Update apt package cache
+    apt:
+      update_cache: yes
+    become: true
+
+  - name: Install kubeadm, kubelet, and kubectl
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - kubeadm
+      - kubelet
+      - kubectl
+
+  - name: Set up kubectl for the current user
+    shell: "{{ item }}"
+    with_items:
+      - "mkdir -p $HOME/.kube"
+      - "cp /etc/kubernetes/admin.conf $HOME/.kube/config"
+      - "chown $(id -u):$(id -g) $HOME/.kube/config"
+    become: true
+    become_method: sudo
+
+  - name: Install Calico network plugin
+    command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+    when: "'calico' in kubeadm_output.stdout"
+
+- hosts: workers
+  become: yes
+  tasks:
+  - name: Disable Swap
+    command: swapoff -a
+    ignore_errors: true  # Ignore errors if swap is already off
+
+  - name: Ensure Swap is Disabled on Boot
+    lineinfile:
+      path: /etc/fstab
+      regexp: '^.*swap.*$'
+      state: absent  # Remove any line that mounts swap
+
+  - name: Allow Port 6443
+    ufw:
+      rule: allow
+      port: 6443
+      proto: tcp
+
+  - name: Enable UFW
+    ufw:
+      state: enabled    
+
+  - name: Install Docker
+    apt:
+      name: docker.io
+      state: present
+
+  - name: Install packages needed to use the Kubernetes apt repository
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+
+  - name: Ensure /etc/apt/keyrings directory exists
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+
+  - name: Download Kubernetes apt Release key
+    get_url:
+      url: https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key
+      dest: /tmp/kubernetes-release-key.gpg
+      mode: '0644'
+
+  - name: Convert Release key to GPG format and move to keyrings directory
+    command: >
+      gpg --batch --yes --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/kubernetes-release-key.gpg
+    become: true
+
+  - name: Set proper permissions for Kubernetes apt keyring
+    file:
+      path: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      mode: '0644'
+      owner: root
+      group: root
+    become: true
+
+  - name: Add Kubernetes apt repository
+    copy:
+      dest: /etc/apt/sources.list.d/kubernetes.list
+      content: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /'
+      mode: '0644'
+    become: true
+
+  - name: Remove temporary key file
+    file:
+      path: /tmp/kubernetes-release-key.gpg
+      state: absent
+
+  - name: Update apt package cache
+    apt:
+      update_cache: yes
+    become: true
+
+  - name: Install kubeadm, kubelet, and kubectl
+    apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - kubeadm
+      - kubelet
+      - kubectl
+

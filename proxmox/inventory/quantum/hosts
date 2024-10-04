@@ -1,0 +1,10 @@
+[masters]
+quantum-01 
+
+[workers]
+quantum-02 
+quantum-03 
+
+[kubernetes:children]
+masters
+workers
